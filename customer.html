@@ -30,7 +30,7 @@
     <div class="card ticket-box">
         <h2>Self-Service Ticket Kiosk</h2>
         <p class="instruction">Click below to generate a new queue number digitally:</p>
-        <button class="btn-norm" onclick="generateDigitalTicket('S')">GET NORMAL TICKET (S)</button>
+        <button class="btn-norm" onclick="generateDigitalTicket('S')">GET NORMAL TICKET (A)</button>
         <button class="btn-prio" onclick="generateDigitalTicket('P')">GET PRIORITY TICKET (P)</button>
         <div class="new-ticket-display" id="newTicketShow"></div>
     </div>
@@ -38,7 +38,7 @@
     <div class="card">
         <h2>Customer Queue Tracking</h2>
         <p class="instruction">Please enter your queue number</p>
-        <input type="text" id="queueInput" placeholder="Example : S0001">
+        <input type="text" id="queueInput" placeholder="Example : A001">
         <button onclick="checkQueue()">CHECK STATUS</button>
     </div>
 
