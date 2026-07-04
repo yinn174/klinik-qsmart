@@ -9,13 +9,16 @@ const PORT = process.env.PORT || 10000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// --- DATA STRUKTUR STRUKTUR MASA NYATA (REAL-TIME DATA) ---
+// --- TEMPAT SIMPANAN DATA MASA NYATA ---
 let currentServing = "-";
-let waitingList = [];  // Menyimpan tiket Normal (S)
-let priorityList = []; // Menyimpan tiket Priority (P)
-let skippedList = [];  // Menyimpan tiket yang di-skip
+let waitingList = [];  // Kategori Normal (S)
+let priorityList = []; // Kategori Priority (P)
+let skippedList = [];  
 
-// Fungsi untuk pancarkan data terkini ke semua web pelanggan & staf secara serentak
+// Kaunter turutan untuk sistem Kiosk Digital
+let nextNormalCount = 1;
+let nextPriorityCount = 1;
+
 function pancarKemaskiniQueue() {
     io.emit('updateQueue', {
         currentServing: currentServing,
@@ -25,80 +28,90 @@ function pancarKemaskiniQueue() {
     });
 }
 
-// 1. API: Menerima Tiket Baharu dari Pico
+// 1. INPUT HARDWARE: Terima data daripada butang fizikal Pico
 app.post('/api/tiket', (req, res) => {
     const { tiket } = req.body;
     if (tiket) {
-        const tiketUpper = tiket.trim().toUpperCase();
-        if (tiketUpper.startsWith('P')) {
-            priorityList.push(tiketUpper);
+        const tUpper = tiket.trim().toUpperCase();
+        if (tUpper.startsWith('P')) {
+            priorityList.push(tUpper);
         } else {
-            waitingList.push(tiketUpper);
+            waitingList.push(tUpper);
         }
-        console.log(`[PICO]: Tiket ${tiketUpper} dimasukkan ke dalam barisan.`);
-        pancarKemaskiniQueue(); // Hantar update terus ke web
+        console.log(`[PICO]: Tiket ${tUpper} dimasukkan.`);
+        pancarKemaskiniQueue();
         res.status(200).json({ status: "berjaya" });
     } else {
         res.status(400).json({ status: "gagal" });
     }
 });
 
-// Socket.io Connection Event
+// CONNECTION EVENT: Socket.io
 io.on('connection', (socket) => {
-    console.log('[SOCKET]: Pengguna tersambung.');
-    // Hantar data terkini sebaik sahaja ada tab dibuka
+    console.log('[SOCKET]: Pelanggan/Staf terhubung.');
+    
     socket.emit('updateQueue', {
         currentServing: currentServing,
         waiting: waitingList,
         priority: priorityList,
         skipped: skippedList
     });
+
+    // 2. INPUT DIGITAL: Menjana tiket terus dari portal pelanggan (Self-Service)
+    socket.on('generateTicket', (data) => {
+        let newTicket = "";
+        if (data.type === 'P') {
+            newTicket = "P" + String(nextPriorityCount).padStart(3, '0');
+            nextPriorityCount++;
+            priorityList.push(newTicket);
+        } else {
+            newTicket = "S" + String(nextNormalCount).padStart(3, '0');
+            nextNormalCount++;
+            waitingList.push(newTicket);
+        }
+        
+        console.log(`[KIOSK DIGITAL]: Tiket ${newTicket} dijana.`);
+        // Hantar maklum balas kepada pemohon tiket sahaja
+        socket.emit('ticketGenerated', newTicket);
+        // Kemas kini keseluruhan senarai ke semua skrin
+        pancarKemaskiniQueue();
+    });
 });
 
-// --- API UNTUK BUTANG STAF (CALL NEXT, RECALL, SKIP) ---
-
-// 2. API: CALL NEXT (Utamakan Priority (P) dahulu baru Normal (S))
+// --- API KAWALAN STAF ---
 app.get('/api/panggil-next', (req, res) => {
     if (priorityList.length > 0) {
         currentServing = priorityList.shift();
     } else if (waitingList.length > 0) {
         currentServing = waitingList.shift();
     } else {
-        return res.json({ status: "gagal", mesej: "Tiada tiket dalam giliran" });
+        return res.json({ status: "gagal", mesej: "Tiada tiket" });
     }
-    
-    console.log(`[STAF]: Memanggil tiket baharu: ${currentServing}`);
+    console.log(`[STAF]: Panggil ${currentServing}`);
     pancarKemaskiniQueue();
     res.json({ status: "berjaya", tiket: currentServing });
 });
 
-// 3. API: RECALL (Pemicu Bunyi Semula)
 app.get('/api/recall', (req, res) => {
-    console.log(`[STAF]: Menjalankan Recall untuk tiket: ${currentServing}`);
-    // Pancar semula isyarat untuk paksa customer.html bercakap semula
     io.emit('triggerRecallAudio', currentServing);
     res.json({ status: "berjaya" });
 });
 
-// 4. API: SKIP TIKET
 app.get('/api/skip', (req, res) => {
     if (currentServing !== "-") {
-        if (!skippedList.includes(currentServing)) {
-            skippedList.push(currentServing);
-        }
-        console.log(`[STAF]: Tiket ${currentServing} dimasukkan ke senarai Skip.`);
+        if (!skippedList.includes(currentServing)) skippedList.push(currentServing);
         currentServing = "-";
         pancarKemaskiniQueue();
         res.json({ status: "berjaya" });
     } else {
-        res.json({ status: "gagal", mesej: "Tiada tiket aktif untuk di-skip" });
+        res.json({ status: "gagal" });
     }
 });
 
-// ROUTING HALAMAN WEB
+// ROUTING
 app.get('/staff', (req, res) => res.sendFile(path.join(__dirname, 'staff.html')));
 app.get('/customer', (req, res) => res.sendFile(path.join(__dirname, 'customer.html')));
 
 http.listen(PORT, () => {
-    console.log(`Server QSmart+ aktif di port ${PORT}`);
+    console.log(`Sistem QSmart+ Kiosk Kesihatan aktif di port ${PORT}`);
 });
