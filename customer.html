@@ -1,9 +1,85 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Skrin Paparan Pelanggan</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QSmart+ Customer Portal</title>
+    <link rel="stylesheet" href="customer.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>QSmart+</h1>
+        <p>KLINIK KESIHATAN</p>
+    </div>
+
+    <div class="card">
+        <h2>Customer Queue Tracking</h2>
+        <p class="instruction">
+            Please enter your queue number
+        </p>
+
+        <input type="text" id="queueInput" placeholder="Example : S001">
+        <button onclick="checkQueue()">CHECK STATUS</button>
+    </div>
+
+    <div class="statusCard" id="statusCard" style="display: none;">
+        <h2>Your Queue Status</h2>
+
+        <div class="row">
+            <span>Queue Number</span>
+            <strong id="queueNumber">-</strong>
+        </div>
+
+        <div class="row">
+            <span>Status</span>
+            <strong id="status">Waiting</strong>
+        </div>
+
+        <div class="row">
+            <span>Queue Type</span>
+            <strong id="queueType">Normal</strong>
+        </div>
+
+        <div class="row">
+            <span>Customers Ahead</span>
+            <strong id="ahead">0</strong>
+        </div>
+
+        <div class="row">
+            <span>Estimated Waiting Time</span>
+            <strong id="waiting">0 Minutes</strong>
+        </div>
+
+        <div class="row">
+            <span>Current Serving</span>
+            <strong id="serving">-</strong>
+        </div>
+
+        <div class="progressTitle">
+            Queue Progress
+        </div>
+
+        <div class="progressBar">
+            <div class="progress" id="progress"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <br>
+        Universiti Teknologi MARA (UiTM)
+    </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
 
@@ -15,13 +91,14 @@ let globalQueueData = {
     skipped: []
 };
 
-// Fungsi baharu untuk membaca teks panggilan suara
+// Fungsi untuk membaca teks panggilan suara (Ejaan gilirahn sudah dibetulkan)
 function bunyikanSuara(teks) {
     if ('speechSynthesis' in window && teks !== "-") {
-        let sebutan = `Nombor gilirahn. ${teks.split('').join('. ')}. Sila masuk ke kaunter.`;
+        // Mengasingkan huruf dan nombor supaya sebutan lebih jelas (Contoh: P. 0. 0. 1)
+        let sebutan = `Nombor giliran. ${teks.split('').join('. ')}. Sila masuk ke kaunter.`;
         let speech = new SpeechSynthesisUtterance(sebutan);
-        speech.lang = 'ms-MY';
-        speech.rate = 0.8;
+        speech.lang = 'ms-MY'; // Tetapan Bahasa Melayu
+        speech.rate = 0.8;     // Kelajuan suara yang santai
         window.speechSynthesis.speak(speech);
     }
 }
@@ -58,6 +135,12 @@ function checkQueue() {
     if (inputVal === "") {
         alert("Please enter a queue number.");
         return;
+    }
+    
+    // Mengaktifkan kebenaran audio pelayar secara senyap melalui interaksi klik butang
+    if ('speechSynthesis' in window) {
+        let dummySpeech = new SpeechSynthesisUtterance("");
+        window.speechSynthesis.speak(dummySpeech);
     }
     
     refreshStatus(inputVal);
