@@ -1,74 +1,104 @@
 const express = require('express');
 const path = require('path');
 const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+
 const PORT = process.env.PORT || 10000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// --- SIMPANAN DATA GILIRAN ---
-let senaraiTiket = []; 
-let tiketSemasa = "---";
-let statusPanggilanBaru = false; // Flag untuk bagitahu web customer ada nombor baru masuk
+// --- DATA STRUKTUR STRUKTUR MASA NYATA (REAL-TIME DATA) ---
+let currentServing = "-";
+let waitingList = [];  // Menyimpan tiket Normal (S)
+let priorityList = []; // Menyimpan tiket Priority (P)
+let skippedList = [];  // Menyimpan tiket yang di-skip
+
+// Fungsi untuk pancarkan data terkini ke semua web pelanggan & staf secara serentak
+function pancarKemaskiniQueue() {
+    io.emit('updateQueue', {
+        currentServing: currentServing,
+        waiting: waitingList,
+        priority: priorityList,
+        skipped: skippedList
+    });
+}
 
 // 1. API: Menerima Tiket Baharu dari Pico
 app.post('/api/tiket', (req, res) => {
     const { tiket } = req.body;
     if (tiket) {
-        senaraiTiket.push(tiket);
-        console.log(`[SERVER]: Tiket ${tiket} dimasukkan dalam senarai.`);
+        const tiketUpper = tiket.trim().toUpperCase();
+        if (tiketUpper.startsWith('P')) {
+            priorityList.push(tiketUpper);
+        } else {
+            waitingList.push(tiketUpper);
+        }
+        console.log(`[PICO]: Tiket ${tiketUpper} dimasukkan ke dalam barisan.`);
+        pancarKemaskiniQueue(); // Hantar update terus ke web
         res.status(200).json({ status: "berjaya" });
     } else {
         res.status(400).json({ status: "gagal" });
     }
 });
 
-// 2. API: Statistik untuk Web Staf
-app.get('/api/statistik', (req, res) => {
-    const jumlahPrio = senaraiTiket.filter(t => t.startsWith('P')).length;
-    const jumlahStd = senaraiTiket.filter(t => t.startsWith('S')).length;
-    res.json({
-        total: senaraiTiket.length,
-        prio: jumlahPrio,
-        std: jumlahStd
+// Socket.io Connection Event
+io.on('connection', (socket) => {
+    console.log('[SOCKET]: Pengguna tersambung.');
+    // Hantar data terkini sebaik sahaja ada tab dibuka
+    socket.emit('updateQueue', {
+        currentServing: currentServing,
+        waiting: waitingList,
+        priority: priorityList,
+        skipped: skippedList
     });
 });
 
-// 3. API: Staf Panggil Tiket (CALL NEXT) -> Sini punca bunyi/pergerakan!
+// --- API UNTUK BUTANG STAF (CALL NEXT, RECALL, SKIP) ---
+
+// 2. API: CALL NEXT (Utamakan Priority (P) dahulu baru Normal (S))
 app.get('/api/panggil-next', (req, res) => {
-    if (senaraiTiket.length > 0) {
-        tiketSemasa = senaraiTiket.shift(); 
-        statusPanggilanBaru = true; // Aktifkan flag supaya web customer tahu kena berbunyi & bertukar!
-        console.log(`[SERVER]: Memanggil tiket baharu: ${tiketSemasa}`);
-        res.json({ status: "berjaya", tiket: tiketSemasa });
+    if (priorityList.length > 0) {
+        currentServing = priorityList.shift();
+    } else if (waitingList.length > 0) {
+        currentServing = waitingList.shift();
     } else {
-        res.json({ status: "gagal", tiket: null });
+        return res.json({ status: "gagal", mesej: "Tiada tiket dalam giliran" });
+    }
+    
+    console.log(`[STAF]: Memanggil tiket baharu: ${currentServing}`);
+    pancarKemaskiniQueue();
+    res.json({ status: "berjaya", tiket: currentServing });
+});
+
+// 3. API: RECALL (Pemicu Bunyi Semula)
+app.get('/api/recall', (req, res) => {
+    console.log(`[STAF]: Menjalankan Recall untuk tiket: ${currentServing}`);
+    // Pancar semula isyarat untuk paksa customer.html bercakap semula
+    io.emit('triggerRecallAudio', currentServing);
+    res.json({ status: "berjaya" });
+});
+
+// 4. API: SKIP TIKET
+app.get('/api/skip', (req, res) => {
+    if (currentServing !== "-") {
+        if (!skippedList.includes(currentServing)) {
+            skippedList.push(currentServing);
+        }
+        console.log(`[STAF]: Tiket ${currentServing} dimasukkan ke senarai Skip.`);
+        currentServing = "-";
+        pancarKemaskiniQueue();
+        res.json({ status: "berjaya" });
+    } else {
+        res.json({ status: "gagal", mesej: "Tiada tiket aktif untuk di-skip" });
     }
 });
 
-// 4. API: Diakses oleh customer.html secara "polling" untuk semak nombor & bunyi
-app.get('/api/tiket-semasa', (req, res) => {
-    res.json({ 
-        tiket: tiketSemasa,
-        bunyi: statusPanggilanBaru // Hantar status sama ada perlu bunyikan suara/buzzer atau tidak
-    });
-});
+// ROUTING HALAMAN WEB
+app.get('/staff', (req, res) => res.sendFile(path.join(__dirname, 'staff.html')));
+app.get('/customer', (req, res) => res.sendFile(path.join(__dirname, 'customer.html')));
 
-// 5. API: Reset flag bunyi selepas web customer selesai berbunyi
-app.post('/api/reset-bunyi', (req, res) => {
-    statusPanggilanBaru = false;
-    res.json({ status: "ok" });
-});
-
-// --- ROUTING HALAMAN WEB ---
-app.get('/staff', (req, res) => {
-    res.sendFile(path.join(__dirname, 'staff.html'));
-});
-
-app.get('/customer', (req, res) => {
-    res.sendFile(path.join(__dirname, 'customer.html'));
-});
-
-app.listen(PORT, () => {
-    console.log(`Server Klinik Q-Smart berjalan lancar di port ${PORT}`);
+http.listen(PORT, () => {
+    console.log(`Server QSmart+ aktif di port ${PORT}`);
 });
