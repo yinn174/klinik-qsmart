@@ -1,0 +1,20 @@
+{
+  "name": "qsmart",
+  "version": "1.0.0",
+  "description": "",
+  "main": "customer.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@serialport/parser-readline": "^13.0.0",
+    "express": "^5.2.1",
+    "qrcode": "^1.5.4",
+    "serialport": "^13.0.0",
+    "socket.io": "^4.8.3"
+  }
+}
