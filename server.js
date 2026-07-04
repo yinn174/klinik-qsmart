@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
             nextPriorityCount++;
             priorityList.push(newTicket);
         } else {
-            newTicket = "A" + String(nextNormalCount).padStart(3, '0');
+            newTicket = "S" + String(nextNormalCount).padStart(3, '0');
             nextNormalCount++;
             waitingList.push(newTicket);
         }
