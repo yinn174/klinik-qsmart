@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skrin Panggilan Staf</title>
+    <title>Skrin Panggilan Staf - Klinik Q-Smart</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,134 +12,170 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
         }
         .container {
             background-color: #162447;
-            padding: 40px;
+            padding: 35px;
             border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
             text-align: center;
-            width: 90%;
-            max-width: 500px;
-        }
-        h1 { color: #e43f5a; margin-bottom: 10px; }
-        p { color: #cbd5e1; font-size: 1.1rem; }
-        
-        .setup-section {
-            margin: 30px 0;
-            padding: 15px;
-            background: #1f4068;
-            border-radius: 10px;
-        }
-        select {
-            padding: 12px 20px;
-            font-size: 1.1rem;
-            border-radius: 8px;
-            border: none;
             width: 100%;
-            box-sizing: border-box;
-            background-color: #ffffff;
-            color: #333;
-            font-weight: bold;
+            max-width: 550px;
         }
+        h1 { color: #e43f5a; margin: 0 0 5px 0; font-size: 2rem; }
+        .sub-title { color: #cbd5e1; margin-bottom: 25px; font-size: 1rem; }
         
+        /* PANEL STATISTIK / BILANGAN MENUNGGU */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+        .stat-card {
+            background-color: #1f4068;
+            padding: 15px 10px;
+            border-radius: 12px;
+            border-bottom: 4px solid #00fff0;
+        }
+        .stat-card.prio { border-bottom-color: #e43f5a; }
+        .stat-card.std { border-bottom-color: #f77f00; }
+        
+        .stat-val { font-size: 1.8rem; font-weight: bold; margin-top: 5px; color: #ffffff; }
+        .stat-lbl { font-size: 0.8rem; color: #a8dadc; font-weight: 600; text-transform: uppercase; }
+
+        /* PAPARAN UTAMA NOMBOR GILIRAN */
         .display-box {
             background-color: #1f4068;
-            padding: 30px;
+            padding: 25px;
             border-radius: 15px;
-            margin: 25px 0;
+            margin-bottom: 25px;
             border: 2px solid #e43f5a;
         }
-        .label { font-size: 1.2rem; color: #00fff0; letter-spacing: 1px; }
-        .number { font-size: 4rem; font-weight: bold; margin: 10px 0; color: #ffffff; }
+        .label { font-size: 1.1rem; color: #00fff0; letter-spacing: 1px; font-weight: bold; }
+        .number { font-size: 4.5rem; font-weight: bold; margin: 10px 0; color: #ffffff; letter-spacing: 2px; }
         
+        /* KUMPULAN BUTANG KAWALAN */
         .btn-group {
             display: flex;
-            gap: 15px;
             flex-direction: column;
+            gap: 12px;
+        }
+        .btn-row {
+            display: flex;
+            gap: 12px;
         }
         button {
-            padding: 15px 25px;
-            font-size: 1.2rem;
+            padding: 15px 20px;
+            font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
             border: none;
             border-radius: 10px;
-            transition: all 0.2s;
-            width: 100%;
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        .btn-next { background-color: #00b4d8; color: white; }
-        .btn-next:hover { background-color: #0096c7; }
-        .btn-recall { background-color: #f77f00; color: white; }
-        .btn-recall:hover { background-color: #fcbf49; }
+        button:active { transform: scale(0.98); }
         
-        .status-text { margin-top: 15px; font-size: 0.9rem; color: #a8dadc; }
+        .btn-call { background-color: #00b4d8; color: white; width: 100%; font-size: 1.3rem; padding: 18px; }
+        .btn-call:hover { background-color: #0096c7; }
+        
+        .btn-recall { background-color: #f77f00; color: white; flex: 1; }
+        .btn-recall:hover { background-color: #e07200; }
+        
+        .btn-skip { background-color: #e43f5a; color: white; flex: 1; }
+        .btn-skip:hover { background-color: #c72c44; }
+        
+        .status-text { margin-top: 20px; font-size: 0.9rem; color: #a8dadc; font-style: italic; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>KAUNTER STAF</h1>
-        <p>Sistem Pengurusan Giliran Klinik</p>
+        <h1>KAUNTER UTAMA STAF</h1>
+        <div class="sub-title">Sistem Pengurusan Giliran Klinik Q-Smart</div>
 
-        <div class="setup-section">
-            <label for="kaunterSelect" style="display:block; margin-bottom:8px; font-weight:bold;">PILIH KAUNTER ANDA:</label>
-            <select id="kaunterSelect" onchange="kemaskiniKaunter()">
-                <option value="Kaunter 1 (Ibu & Anak)">Kaunter 1 (Ibu & Anak)</option>
-                <option value="Kaunter 2 (Doktor)">Kaunter 2 (Doktor)</option>
-                <option value="Kaunter 3 (Farmasi)">Kaunter 3 (Farmasi)</option>
-            </select>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-lbl">Waiting</div>
+                <div class="stat-val" id="totalWaiting">0</div>
+            </div>
+            <div class="stat-card prio">
+                <div class="stat-lbl">Prio Queue</div>
+                <div class="stat-val" id="prioWaiting">0</div>
+            </div>
+            <div class="stat-card std">
+                <div class="stat-lbl">Std Queue</div>
+                <div class="stat-val" id="stdWaiting">0</div>
+            </div>
         </div>
 
         <div class="display-box">
-            <div class="label" id="namaKaunterPapar">Kaunter 1 (Ibu & Anak)</div>
+            <div class="label">NOMBOR SEDANG DIPANGGIL</div>
             <div class="number" id="noSemasaPapar">---</div>
         </div>
 
         <div class="btn-group">
-            <button class="btn-next" onclick="panggilSeterusnya()">CALL NEXT 📢</button>
-            <button class="btn-recall" onclick="panggilSemula()">RECALL 🔄</button>
+            <button class="btn-call" onclick="panggilSeterusnya()">CALL NEXT 📢</button>
+            <div class="btn-row">
+                <button class="btn-recall" onclick="panggilSemula()">RECALL 🔄</button>
+                <button class="btn-skip" onclick="skipTiket()">SKIP ⏭️</button>
+            </div>
         </div>
 
         <div class="status-text" id="statusPapar">Sedia digunakan...</div>
     </div>
 
     <script>
-        let namaKaunterLokal = "Kaunter 1 (Ibu & Anak)";
         let noTiketSemasaLokal = "---";
 
-        function kemaskiniKaunter() {
-            namaKaunterLokal = document.getElementById("kaunterSelect").value;
-            document.getElementById("namaKaunterPapar").innerText = namaKaunterLokal;
-            document.getElementById("statusPapar").innerText = `Bertukar ke ${namaKaunterLokal}`;
+        // Fungsi auto-update statistik kaunter dari server setiap 2 saat
+        async function dapatkanStatistik() {
+            try {
+                const respon = await fetch('/api/statistik');
+                const data = await respon.json();
+                if(data) {
+                    document.getElementById("totalWaiting").innerText = data.total || 0;
+                    document.getElementById("prioWaiting").innerText = data.prio || 0;
+                    document.getElementById("stdWaiting").innerText = data.std || 0;
+                }
+            } catch (err) {
+                console.error("Gagal kemaskini statistik:", err);
+            }
         }
 
-        // FUNGSI UTAMA: Ambil tiket seterusnya dari server dan panggil
+        // Jalankan poll statistik setiap 2 saat secara automatik
+        setInterval(dapatkanStatistik, 2000);
+        dapatkanStatistik();
+
+        // 1. FUNGSI: CALL NEXT
         async function panggilSeterusnya() {
-            document.getElementById("statusPapar").innerText = "Meminta data dari server Cloud...";
+            document.getElementById("statusPapar").innerText = "Memproses panggilan tiket...";
             try {
-                // Hantar arahan ke server untuk "pop" tiket paling depan dalam senarai (FIFO)
-                const infoKaunterPilihan = (namaKaunterLokal.includes("1")) ? 1 : (namaKaunterLokal.includes("2") ? 2 : 3);
-                
-                const respon = await fetch(`/api/panggil-next?kaunter=${infoKaunterPilihan}`);
+                const respon = await fetch('/api/panggil-next');
                 const data = await respon.json();
 
                 if (data.status === "berjaya" && data.tiket) {
                     noTiketSemasaLokal = data.tiket;
                     document.getElementById("noSemasaPapar").innerText = noTiketSemasaLokal;
                     document.getElementById("statusPapar").innerText = `Berjaya memanggil tiket ${noTiketSemasaLokal}`;
+                    dapatkanStatistik();
                 } else {
                     document.getElementById("statusPapar").innerText = "Tiada tiket menunggu dalam senarai giliran.";
                 }
             } catch (ralat) {
-                console.error(ralat);
                 document.getElementById("statusPapar").innerText = "Ralat: Gagal berhubung dengan Cloud Server.";
             }
         }
 
-        // FUNGSI KEDUA: Panggil semula nombor yang sama
+        // 2. FUNGSI: RECALL
         async function panggilSemula() {
             if (noTiketSemasaLokal === "---") {
                 document.getElementById("statusPapar").innerText = "Sila panggil tiket baru dahulu sebelum RECALL.";
@@ -147,7 +183,6 @@
             }
             document.getElementById("statusPapar").innerText = `Memanggil semula tiket ${noTiketSemasaLokal}...`;
             try {
-                // Tembak semula ke API panggil suara
                 await fetch('/api/tiket', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -157,6 +192,17 @@
             } catch (ralat) {
                 document.getElementById("statusPapar").innerText = "Ralat semasa melakukan Recall.";
             }
+        }
+
+        // 3. FUNGSI: SKIP
+        async function skipTiket() {
+            if (noTiketSemasaLokal === "---") {
+                document.getElementById("statusPapar").innerText = "Tiada tiket aktif untuk di-skip.";
+                return;
+            }
+            document.getElementById("statusPapar").innerText = `Tiket ${noTiketSemasaLokal} telah di-skip.`;
+            noTiketSemasaLokal = "---";
+            document.getElementById("noSemasaPapar").innerText = "---";
         }
     </script>
 </body>
