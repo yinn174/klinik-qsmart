@@ -1,179 +1,37 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="ms">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>QSmart+ Customer Portal</title>
-
-    <link rel="stylesheet" href="customer.css">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Skrin Paparan Pelanggan</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #2c3e50; color: white; padding: 50px; }
+        .container { background: #34495e; padding: 40px; border-radius: 20px; display: inline-block; width: 80%; max-width: 500px; }
+        h2 { letter-spacing: 2px; }
+        .display-box { font-size: 100px; background: #1abc9c; padding: 20px; border-radius: 10px; margin: 30px 0; font-weight: bold; }
+    </style>
 </head>
-
 <body>
-
-<div class="container">
-
-    <div class="header">
-        <h1>QSmart+</h1>
-        <p>KLINIK KESIHATAN</p>
+    <div class="container">
+        <h2>NOMBOR GILIRAN</h2>
+        <div class="display-box" id="skrinNombor">---</div>
+        <p id="statusMesej">Sila tunggu giliran anda ditayangkan</p>
     </div>
 
-    <div class="card">
-        <h2>Customer Queue Tracking</h2>
-        <p class="instruction">
-            Please enter your queue number
-        </p>
+    <script>
+        const socket = io();
+        socket.on('tiketBaru', (noTiket) => {
+            document.getElementById('skrinNombor').innerText = noTiket;
+            panggilSuara(noTiket);
+        });
 
-        <input type="text" id="queueInput" placeholder="Example : S001">
-        <button onclick="checkQueue()">CHECK STATUS</button>
-    </div>
-
-    <div class="statusCard" id="statusCard" style="display: none;">
-        <h2>Your Queue Status</h2>
-
-        <div class="row">
-            <span>Queue Number</span>
-            <strong id="queueNumber">-</strong>
-        </div>
-
-        <div class="row">
-            <span>Status</span>
-            <strong id="status">Waiting</strong>
-        </div>
-
-        <div class="row">
-            <span>Queue Type</span>
-            <strong id="queueType">Normal</strong>
-        </div>
-
-        <div class="row">
-            <span>Customers Ahead</span>
-            <strong id="ahead">0</strong>
-        </div>
-
-        <div class="row">
-            <span>Estimated Waiting Time</span>
-            <strong id="waiting">0 Minutes</strong>
-        </div>
-
-        <div class="row">
-            <span>Current Serving</span>
-            <strong id="serving">S001</strong>
-        </div>
-
-        <div class="progressTitle">
-            Queue Progress
-        </div>
-
-        <div class="progressBar">
-            <div class="progress" id="progress"></div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <br>
-        Universiti Teknologi MARA (UiTM)
-    </div>
-
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-
-// Pemboleh ubah tempatan untuk menyimpan data masa nyata dari server
-let globalQueueData = {
-    currentServing: "-",
-    waiting: [],
-    priority: [],
-    skipped: []
-};
-
-// Menerima data masa nyata dari server
-socket.on('updateQueue', (data) => {
-    globalQueueData.currentServing = data.currentServing || "-";
-    globalQueueData.waiting = data.waiting || [];
-    globalQueueData.priority = data.priority || [];
-    globalQueueData.skipped = data.skipped || [];
-    
-    // Kemas kini terus maklumat nombor semasa jika kad status sedang dibuka
-    const activeSearch = document.getElementById("queueNumber").innerText;
-    if (activeSearch !== "-") {
-        refreshStatus(activeSearch);
-    }
-});
-
-function checkQueue() {
-    const inputVal = document.getElementById("queueInput").value.trim().toUpperCase();
-    
-    if (inputVal === "") {
-        alert("Please enter a queue number.");
-        return;
-    }
-    
-    refreshStatus(inputVal);
-}
-
-function refreshStatus(inputVal) {
-    let status = "";
-    let queueType = inputVal.startsWith('P') ? "Priority" : "Normal";
-    let ahead = 0;
-    let estimatedTime = 0;
-    let progressPercent = 0;
-
-    // 1. Semak jika nombor ini sedang dipanggil (Current Serving)
-    if (globalQueueData.currentServing === inputVal) {
-        status = "Serving (Sila Masuk)";
-        ahead = 0;
-        estimatedTime = 0;
-        progressPercent = 100;
-    }
-    // 2. Semak di dalam senarai menunggu Normal (S)
-    else if (globalQueueData.waiting.includes(inputVal)) {
-        status = "Waiting";
-        ahead = globalQueueData.waiting.indexOf(inputVal);
-        estimatedTime = (ahead + 1) * 3; // Contoh: 3 minit bagi setiap pelanggan
-        progressPercent = Math.max(10, 90 - (ahead * 10));
-    }
-    // 3. Semak di dalam senarai menunggu Keutamaan (P)
-    else if (globalQueueData.priority.includes(inputVal)) {
-        status = "Waiting";
-        ahead = globalQueueData.priority.indexOf(inputVal);
-        estimatedTime = (ahead + 1) * 2; // Contoh: Priority lebih cepat (2 minit)
-        progressPercent = Math.max(10, 90 - (ahead * 10));
-    }
-    // 4. Semak jika nombor ini telah dilepaskan/di-skip
-    else if (globalQueueData.skipped.includes(inputVal)) {
-        status = "Skipped (Sila ke Kaunter)";
-        ahead = "-";
-        estimatedTime = "-";
-        progressPercent = 50;
-    }
-    // 5. Jika langsung tiada dalam sistem
-    else {
-        alert("Queue number not found.");
-        document.getElementById("statusCard").style.display = "none";
-        return;
-    }
-
-    // Paparkan data ke elemen UI skrin pelanggan anda
-    document.getElementById("queueNumber").innerText = inputVal;
-    document.getElementById("status").innerText = status;
-    document.getElementById("queueType").innerText = queueType;
-    document.getElementById("ahead").innerText = ahead;
-    document.getElementById("waiting").innerText = typeof estimatedTime === 'number' ? estimatedTime + " Minutes" : estimatedTime;
-    document.getElementById("serving").innerText = globalQueueData.currentServing;
-    document.getElementById("progress").style.width = progressPercent + "%";
-
-    // Buka kad paparan status
-    document.getElementById("statusCard").style.display = "block";
-}
-</script>
-
+        function panggilSuara(noTiket) {
+            let susunanSuara = "Nombor giliran, " + noTiket.split('').join(', ');
+            let ucapan = new SpeechSynthesisUtterance(susunanSuara);
+            ucapan.lang = 'id-ID'; // Menggunakan suara melayu/indonesia terdekat
+            ucapan.rate = 0.9;
+            window.speechSynthesis.speak(ucapan);
+        }
+    </script>
 </body>
 </html>
