@@ -11,13 +11,12 @@ app.use(express.static(path.join(__dirname)));
 
 // --- TEMPAT SIMPANAN DATA MASA NYATA ---
 let currentServing = "-";
-let waitingList = [];  // Kategori Normal (A)
+let waitingList = [];  // Kategori Normal (S)
 let priorityList = []; // Kategori Priority (P)
 let skippedList = [];  
 
-// Kaunter turutan untuk sistem Kiosk Digital
-let nextNormalCount = 1;
-let nextPriorityCount = 1;
+// Pembolehubah untuk mengawal had keutamaan adil (Fairness Control)
+let priorityCalledCount = 0; 
 
 function pancarKemaskiniQueue() {
     io.emit('updateQueue', {
@@ -49,45 +48,30 @@ app.post('/api/tiket', (req, res) => {
 // CONNECTION EVENT: Socket.io
 io.on('connection', (socket) => {
     console.log('[SOCKET]: Pelanggan/Staf terhubung.');
-    
-    socket.emit('updateQueue', {
-        currentServing: currentServing,
-        waiting: waitingList,
-        priority: priorityList,
-        skipped: skippedList
-    });
-
-    // 2. INPUT DIGITAL: Menjana tiket terus dari portal pelanggan (Self-Service)
-    socket.on('generateTicket', (data) => {
-        let newTicket = "";
-        if (data.type === 'P') {
-            newTicket = "P" + String(nextPriorityCount).padStart(3, '0');
-            nextPriorityCount++;
-            priorityList.push(newTicket);
-        } else {
-            newTicket = "S" + String(nextNormalCount).padStart(3, '0');
-            nextNormalCount++;
-            waitingList.push(newTicket);
-        }
-        
-        console.log(`[KIOSK DIGITAL]: Tiket ${newTicket} dijana.`);
-        // Hantar maklum balas kepada pemohon tiket sahaja
-        socket.emit('ticketGenerated', newTicket);
-        // Kemas kini keseluruhan senarai ke semua skrin
-        pancarKemaskiniQueue();
-    });
+    pancarKemaskiniQueue();
 });
 
-// --- API KAWALAN STAF ---
+// --- API KAWALAN STAF (LOGIK ADIL NISBAH 2:1) ---
 app.get('/api/panggil-next', (req, res) => {
-    if (priorityList.length > 0) {
+    
+    // Syarat 1: Jika ada Priority DAN belum cukup had panggil 2 kali berturut-turut, UTAMAKAN Priority
+    // (Atau jika ada Priority tetapi tiada langsung Normal dalam barisan)
+    if (priorityList.length > 0 && (priorityCalledCount < 2 || waitingList.length === 0)) {
         currentServing = priorityList.shift();
-    } else if (waitingList.length > 0) {
+        priorityCalledCount++; // Tambah rekod panggilan berturut-turut
+        console.log(`[STAF]: Panggil Priority ${currentServing} (Had: ${priorityCalledCount}/2)`);
+    } 
+    // Syarat 2: Jika sudah panggil 2 Priority berturut-turut, atau tiada Priority, WAJIB panggil Normal
+    else if (waitingList.length > 0) {
         currentServing = waitingList.shift();
-    } else {
+        priorityCalledCount = 0; // Set semula pembilang kepada 0 selepas giliran Normal dipanggil
+        console.log(`[STAF]: Panggil Normal ${currentServing} (Had Priority di-reset)`);
+    } 
+    // Syarat 3: Jika tiada langsung sesiapa dalam kedua-dua barisan
+    else {
         return res.json({ status: "gagal", mesej: "Tiada tiket" });
     }
-    console.log(`[STAF]: Panggil ${currentServing}`);
+    
     pancarKemaskiniQueue();
     res.json({ status: "berjaya", tiket: currentServing });
 });
@@ -113,5 +97,5 @@ app.get('/staff', (req, res) => res.sendFile(path.join(__dirname, 'staff.html'))
 app.get('/customer', (req, res) => res.sendFile(path.join(__dirname, 'customer.html')));
 
 http.listen(PORT, () => {
-    console.log(`Sistem QSmart+ Kiosk Kesihatan aktif di port ${PORT}`);
+    console.log(`Sistem QSmart+ aktif di port ${PORT}`);
 });
