@@ -1,38 +1,65 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
 const path = require('path');
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" }
-});
+const PORT = process.env.PORT || 10000;
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname)));
 
-// Route Utama (Saja untuk semak status server)
-app.get('/', (req, res) => {
-    res.send('<h1>Server Klinik Q-Smart Aktif di Cloud!</h1>');
-});
+// --- TEMPAT SIMPANAN DATA TIKET SECARA BERPUSAT ---
+let senaraiTiket = []; 
+let tiketSemasa = "---";
 
-// Endpoint yang akan dipanggil oleh Pico melalui WiFi
+// 1. API: Menerima Tiket Baharu dari Pico / Web
 app.post('/api/tiket', (req, res) => {
     const { tiket } = req.body;
     if (tiket) {
-        console.log(`[WIFI DATA MASUK]: ${tiket}`);
-        io.emit('tiketBaru', tiket); // Hantar ke skrin staff & customer
-        return res.status(200).json({ success: true, message: 'Tiket berjaya diterima' });
+        senaraiTiket.push(tiket);
+        console.log(`[SERVER]: Tiket ${tiket} diterima masuk senarai.`);
+        res.status(200).json({ status: "berjaya" });
+    } else {
+        res.status(400).json({ status: "gagal" });
     }
-    return res.status(400).json({ success: false, message: 'Tiket kosong' });
 });
 
-io.on('connection', (socket) => {
-    console.log('Ada peranti (Web/Telefon) bersambung ke Socket.io');
+// 2. API: Mengira Statistik Bilangan Menunggu untuk Skrin Staf
+app.get('/api/statistik', (req, res) => {
+    // Tapis dan kira pecahan mengikut huruf permulaan tiket
+    const jumlahPrio = senaraiTiket.filter(t => t.startsWith('P')).length;
+    const jumlahStd = senaraiTiket.filter(t => t.startsWith('S')).length;
+    
+    res.json({
+        total: senaraiTiket.length,
+        prio: jumlahPrio,
+        std: jumlahStd
+    });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Server sedang berjalan lancar di port ${PORT}`);
+// 3. API: Staf Panggil Tiket Seterusnya (CALL NEXT)
+app.get('/api/panggil-next', (req, res) => {
+    if (senaraiTiket.length > 0) {
+        tiketSemasa = senaraiTiket.shift(); 
+        console.log(`[SERVER]: Panggil tiket: ${tiketSemasa}`);
+        res.json({ status: "berjaya", tiket: tiketSemasa });
+    } else {
+        res.json({ status: "gagal", tiket: null });
+    }
+});
+
+// 4. API: Ambil Status Tiket Semasa untuk customer.html
+app.get('/api/tiket-semasa', (req, res) => {
+    res.json({ tiket: tiketSemasa });
+});
+
+// --- ROUTING HALAMAN WEB ---
+app.get('/staff', (req, res) => {
+    res.sendFile(path.join(__dirname, 'staff.html'));
+});
+
+app.get('/customer', (req, res) => {
+    res.sendFile(path.join(__dirname, 'customer.html'));
+});
+
+app.listen(PORT, () => {
+    console.log(`Server Klinik Q-Smart berjalan lancar di port ${PORT}`);
 });
