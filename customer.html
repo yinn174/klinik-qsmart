@@ -9,13 +9,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* Tambahan gaya butang untuk ambil tiket digital */
-        .ticket-box { background: #fff3cd; padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #ffeeba; }
-        .btn-prio { background-color: #e67e22; color: white; }
-        .btn-norm { background-color: #3498db; color: white; }
-        .new-ticket-display { font-size: 24px; font-weight: bold; color: #2c3e50; margin-top: 10px; }
-    </style>
 </head>
 
 <body>
@@ -27,18 +20,10 @@
         <p>KLINIK KESIHATAN</p>
     </div>
 
-    <div class="card ticket-box">
-        <h2>Self-Service Ticket Kiosk</h2>
-        <p class="instruction">Click below to generate a new queue number digitally:</p>
-        <button class="btn-norm" onclick="generateDigitalTicket('S')">GET NORMAL TICKET (A)</button>
-        <button class="btn-prio" onclick="generateDigitalTicket('P')">GET PRIORITY TICKET (P)</button>
-        <div class="new-ticket-display" id="newTicketShow"></div>
-    </div>
-
     <div class="card">
         <h2>Customer Queue Tracking</h2>
         <p class="instruction">Please enter your queue number</p>
-        <input type="text" id="queueInput" placeholder="Example : A001">
+        <input type="text" id="queueInput" placeholder="Example : S001">
         <button onclick="checkQueue()">CHECK STATUS</button>
     </div>
 
@@ -92,6 +77,7 @@
 <script>
 const socket = io();
 
+// Pemboleh ubah tempatan untuk menyimpan data masa nyata dari server
 let globalQueueData = {
     currentServing: "-",
     waiting: [],
@@ -110,9 +96,9 @@ function bunyikanSuara(teks) {
     }
 }
 
-// Terima data real-time dari server
+// Menerima data masa nyata dari server
 socket.on('updateQueue', (data) => {
-    // TAMBAHAN: Jika nombor dipanggil berubah, bunyikan panggilan suara automatik
+    // Jika nombor dipanggil berubah, bunyikan panggilan suara automatik
     if (globalQueueData.currentServing !== data.currentServing && data.currentServing !== "-") {
         bunyikanSuara(data.currentServing);
     }
@@ -122,45 +108,29 @@ socket.on('updateQueue', (data) => {
     globalQueueData.priority = data.priority || [];
     globalQueueData.skipped = data.skipped || [];
     
-    // Auto-refresh data pada skrin pelanggan jika mereka sedang buka kad status
+    // Kemas kini terus maklumat nombor semasa jika kad status sedang dibuka
     const activeSearch = document.getElementById("queueNumber").innerText;
     if (activeSearch !== "-") {
         refreshStatus(activeSearch);
     }
 });
 
-// TAMBAHAN: Mendengar isyarat RECALL dari staf untuk bunyikan semula suara
+// Mendengar isyarat RECALL daripada staf untuk bunyikan semula suara
 socket.on('triggerRecallAudio', (tiket) => {
     if (tiket && tiket !== "-") {
         bunyikanSuara(tiket);
     }
 });
 
-// FUNGSI BARU: Hantar isyarat jana tiket ke server tanpa hardware
-function generateDigitalTicket(type) {
-    // Aktifkan kebenaran audio pelayar semasa klik butang kiosk
-    if ('speechSynthesis' in window) {
-        let dummySpeech = new SpeechSynthesisUtterance("");
-        window.speechSynthesis.speak(dummySpeech);
-    }
-    socket.emit('generateTicket', { type: type });
-}
-
-// Terima maklum balas selepas tiket berjaya dijana oleh server
-socket.on('ticketGenerated', (newTicket) => {
-    document.getElementById("newTicketShow").innerHTML = "Your Ticket Number: <span style='color:#d35400; font-size:28px;'>" + newTicket + "</span>";
-    document.getElementById("queueInput").value = newTicket; // Masukkan terus ke kotak carian untuk mudahkan user
-    alert("Successfully generated ticket: " + newTicket);
-});
-
 function checkQueue() {
     const inputVal = document.getElementById("queueInput").value.trim().toUpperCase();
+    
     if (inputVal === "") {
         alert("Please enter a queue number.");
         return;
     }
     
-    // Aktifkan kebenaran audio pelayar semasa klik butang semakan
+    // Aktifkan kebenaran audio pelayar (Browser Audio Policy) secara senyap
     if ('speechSynthesis' in window) {
         let dummySpeech = new SpeechSynthesisUtterance("");
         window.speechSynthesis.speak(dummySpeech);
@@ -176,36 +146,42 @@ function refreshStatus(inputVal) {
     let estimatedTime = 0;
     let progressPercent = 0;
 
+    // 1. Semak jika nombor ini sedang dipanggil (Current Serving)
     if (globalQueueData.currentServing === inputVal) {
         status = "Serving (Sila Masuk)";
         ahead = 0;
         estimatedTime = 0;
         progressPercent = 100;
     }
+    // 2. Semak di dalam senarai menunggu Normal (S)
     else if (globalQueueData.waiting.includes(inputVal)) {
         status = "Waiting";
         ahead = globalQueueData.waiting.indexOf(inputVal);
-        estimatedTime = (ahead + 1) * 3;
+        estimatedTime = (ahead + 1) * 3; // Contoh: 3 minit bagi setiap pelanggan
         progressPercent = Math.max(10, 90 - (ahead * 10));
     }
+    // 3. Semak di dalam senarai menunggu Keutamaan (P)
     else if (globalQueueData.priority.includes(inputVal)) {
         status = "Waiting";
         ahead = globalQueueData.priority.indexOf(inputVal);
-        estimatedTime = (ahead + 1) * 2;
+        estimatedTime = (ahead + 1) * 2; // Contoh: Priority lebih cepat (2 minit)
         progressPercent = Math.max(10, 90 - (ahead * 10));
     }
+    // 4. Semak jika nombor ini telah dilepaskan/di-skip
     else if (globalQueueData.skipped.includes(inputVal)) {
         status = "Skipped (Sila ke Kaunter)";
         ahead = "-";
         estimatedTime = "-";
         progressPercent = 50;
     }
+    // 5. Jika langsung tiada dalam sistem
     else {
         alert("Queue number not found.");
         document.getElementById("statusCard").style.display = "none";
         return;
     }
 
+    // Paparkan data ke elemen UI skrin pelanggan anda
     document.getElementById("queueNumber").innerText = inputVal;
     document.getElementById("status").innerText = status;
     document.getElementById("queueType").innerText = queueType;
@@ -214,6 +190,7 @@ function refreshStatus(inputVal) {
     document.getElementById("serving").innerText = globalQueueData.currentServing;
     document.getElementById("progress").style.width = progressPercent + "%";
 
+    // Buka kad paparan status
     document.getElementById("statusCard").style.display = "block";
 }
 </script>
