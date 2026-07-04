@@ -9,6 +9,78 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Memastikan warna tema ungu & kuning anda sentiasa konsisten */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 480px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .header {
+            background-color: #7b4397; /* Warna Ungu Asal */
+            color: white;
+            text-align: center;
+            padding: 35px 20px;
+        }
+        .header h1 { margin: 0; font-size: 2.2rem; font-weight: 700; letter-spacing: 0.5px; }
+        .header p { margin: 5px 0 0 0; font-size: 0.9rem; letter-spacing: 2px; opacity: 0.9; }
+        
+        .card { padding: 30px 24px; text-align: center; }
+        .card h2 { color: #333; font-size: 1.5rem; margin-top: 0; font-weight: 600; }
+        .instruction { color: #666; font-size: 0.95rem; margin-bottom: 20px; }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #7b4397;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        button {
+            width: 100%;
+            background-color: #f5b041; /* Warna Kuning Asal */
+            color: #ffffff;
+            border: none;
+            padding: 15px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #dc9628; }
+        
+        .statusCard { padding: 0 24px 30px 24px; display: none; }
+        .statusCard h2 { color: #333; font-size: 1.3rem; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .row { display: flex; justify-content: space-between; margin: 12px 0; font-size: 1rem; }
+        .row span { color: #666; }
+        .row strong { color: #333; font-weight: 700; }
+        
+        .progressTitle { font-size: 0.9rem; font-weight: 600; color: #666; margin-top: 20px; margin-bottom: 8px; }
+        .progressBar { background-color: #e5e7eb; border-radius: 10px; height: 12px; width: 100%; overflow: hidden; }
+        .progress { background-color: #7b4397; height: 100%; width: 0%; transition: width 0.5s ease; }
+        
+        .footer { text-align: center; padding: 20px; font-size: 0.8rem; color: #999; border-top: 1px solid #f3f4f6; }
+    </style>
 </head>
 
 <body>
@@ -27,7 +99,7 @@
         <button onclick="checkQueue()">CHECK STATUS</button>
     </div>
 
-    <div class="statusCard" id="statusCard" style="display: none;">
+    <div class="statusCard" id="statusCard">
         <h2>Your Queue Status</h2>
 
         <div class="row">
@@ -67,7 +139,6 @@
     </div>
 
     <div class="footer">
-        <br>
         Universiti Teknologi MARA (UiTM)
     </div>
 
@@ -77,7 +148,7 @@
 <script>
 const socket = io();
 
-// Pemboleh ubah tempatan untuk menyimpan data masa nyata dari server
+// Menyimpan data realtime terkini dari pelayan Render
 let globalQueueData = {
     currentServing: "-",
     waiting: [],
@@ -85,7 +156,7 @@ let globalQueueData = {
     skipped: []
 };
 
-// Fungsi pembaca teks suara panggilan (Audio Text-to-Speech)
+// Fungsi Audio: Text-to-Speech Panggilan Suara Bahasa Melayu
 function bunyikanSuara(teks) {
     if ('speechSynthesis' in window && teks !== "-") {
         let sebutan = `Nombor giliran. ${teks.split('').join('. ')}. Sila masuk ke kaunter.`;
@@ -96,9 +167,9 @@ function bunyikanSuara(teks) {
     }
 }
 
-// Menerima data masa nyata dari server
+// 1. Menerima data masa nyata menerusi Socket.io
 socket.on('updateQueue', (data) => {
-    // Jika nombor dipanggil berubah, bunyikan panggilan suara automatik
+    // Jika nombor dipanggil berubah, jalankan panggilan suara automatik
     if (globalQueueData.currentServing !== data.currentServing && data.currentServing !== "-") {
         bunyikanSuara(data.currentServing);
     }
@@ -108,14 +179,14 @@ socket.on('updateQueue', (data) => {
     globalQueueData.priority = data.priority || [];
     globalQueueData.skipped = data.skipped || [];
     
-    // Kemas kini terus maklumat nombor semasa jika kad status sedang dibuka
+    // Auto-refresh status sekiranya pelanggan sedang membuka kad status
     const activeSearch = document.getElementById("queueNumber").innerText;
     if (activeSearch !== "-") {
         refreshStatus(activeSearch);
     }
 });
 
-// Mendengar isyarat RECALL daripada staf untuk bunyikan semula suara
+// 2. Mendengar isyarat RECALL daripada portal staf
 socket.on('triggerRecallAudio', (tiket) => {
     if (tiket && tiket !== "-") {
         bunyikanSuara(tiket);
@@ -130,7 +201,7 @@ function checkQueue() {
         return;
     }
     
-    // Aktifkan kebenaran audio pelayar (Browser Audio Policy) secara senyap
+    // Melepaskan kebenaran sekatan audio pelayar Chrome/Edge secara senyap
     if ('speechSynthesis' in window) {
         let dummySpeech = new SpeechSynthesisUtterance("");
         window.speechSynthesis.speak(dummySpeech);
@@ -146,42 +217,38 @@ function refreshStatus(inputVal) {
     let estimatedTime = 0;
     let progressPercent = 0;
 
-    // 1. Semak jika nombor ini sedang dipanggil (Current Serving)
+    // Semak kedudukan nombor di dalam struktur data Render
     if (globalQueueData.currentServing === inputVal) {
         status = "Serving (Sila Masuk)";
         ahead = 0;
         estimatedTime = 0;
         progressPercent = 100;
     }
-    // 2. Semak di dalam senarai menunggu Normal (S)
     else if (globalQueueData.waiting.includes(inputVal)) {
         status = "Waiting";
         ahead = globalQueueData.waiting.indexOf(inputVal);
-        estimatedTime = (ahead + 1) * 3; // Contoh: 3 minit bagi setiap pelanggan
+        estimatedTime = (ahead + 1) * 3;
         progressPercent = Math.max(10, 90 - (ahead * 10));
     }
-    // 3. Semak di dalam senarai menunggu Keutamaan (P)
     else if (globalQueueData.priority.includes(inputVal)) {
         status = "Waiting";
         ahead = globalQueueData.priority.indexOf(inputVal);
-        estimatedTime = (ahead + 1) * 2; // Contoh: Priority lebih cepat (2 minit)
+        estimatedTime = (ahead + 1) * 2;
         progressPercent = Math.max(10, 90 - (ahead * 10));
     }
-    // 4. Semak jika nombor ini telah dilepaskan/di-skip
     else if (globalQueueData.skipped.includes(inputVal)) {
         status = "Skipped (Sila ke Kaunter)";
         ahead = "-";
         estimatedTime = "-";
         progressPercent = 50;
     }
-    // 5. Jika langsung tiada dalam sistem
     else {
         alert("Queue number not found.");
         document.getElementById("statusCard").style.display = "none";
         return;
     }
 
-    // Paparkan data ke elemen UI skrin pelanggan anda
+    // Paparkan maklumat yang diproses ke paparan UI
     document.getElementById("queueNumber").innerText = inputVal;
     document.getElementById("status").innerText = status;
     document.getElementById("queueType").innerText = queueType;
@@ -190,7 +257,6 @@ function refreshStatus(inputVal) {
     document.getElementById("serving").innerText = globalQueueData.currentServing;
     document.getElementById("progress").style.width = progressPercent + "%";
 
-    // Buka kad paparan status
     document.getElementById("statusCard").style.display = "block";
 }
 </script>
