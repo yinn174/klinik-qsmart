@@ -3,142 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skrin Panggilan Staf</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a2e;
-            color: #ffffff;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            background-color: #162447;
-            padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            text-align: center;
-            width: 90%;
-            max-width: 500px;
-        }
-        h1 { color: #e43f5a; margin-bottom: 10px; }
-        p { color: #cbd5e1; font-size: 1.1rem; }
-        
-        .display-box {
-            background-color: #1f4068;
-            padding: 30px;
-            border-radius: 15px;
-            margin: 25px 0;
-            border: 2px solid #e43f5a;
-        }
-        .label { font-size: 1.2rem; color: #00fff0; letter-spacing: 1px; }
-        .number { font-size: 4rem; font-weight: bold; margin: 10px 0; color: #ffffff; }
-        
-        .btn-group {
-            display: flex;
-            gap: 15px;
-            flex-direction: column;
-        }
-        .btn-row {
-            display: flex;
-            gap: 15px;
-            width: 100%;
-        }
-        button {
-            padding: 15px 25px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            border: none;
-            border-radius: 10px;
-            transition: all 0.2s;
-            width: 100%;
-        }
-        .btn-next { background-color: #00b4d8; color: white; }
-        .btn-next:hover { background-color: #0096c7; }
-        .btn-recall { background-color: #f77f00; color: white; flex: 1; }
-        .btn-recall:hover { background-color: #fcbf49; }
-        .btn-skip { background-color: #e43f5a; color: white; flex: 1; }
-        .btn-skip:hover { background-color: #c72c44; }
-        
-        .status-text { margin-top: 15px; font-size: 0.9rem; color: #a8dadc; }
-    </style>
+    <title>QSmart+ | Portal Staf</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
 </head>
-<body>
+<body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col justify-between">
 
-    <div class="container">
-        <h1>KAUNTER STAF</h1>
-        <p>Sistem Pengurusan Giliran Klinik</p>
-
-        <div class="display-box">
-            <div class="label" id="namaKaunterPapar">KAUNTER UTAMA BERPUSAT</div>
-            <div class="number" id="noSemasaPapar">---</div>
+    <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center shadow-lg">
+        <div class="flex items-center space-x-3">
+            <span class="text-2xl font-black tracking-wider text-emerald-400">QSmart<span class="text-white">+</span></span>
+            <span class="bg-emerald-500/10 text-emerald-400 text-xs px-2 py-1 rounded-md font-medium border border-emerald-500/20">PORTAL STAF</span>
         </div>
+        <div class="flex items-center space-x-2 text-sm text-gray-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Sistem Bersepadu Berpusat (Digital & Pico)</span>
+        </div>
+    </nav>
 
-        <div class="btn-group">
-            <button class="btn-next" onclick="panggilSeterusnya()">CALL NEXT 📢</button>
-            <div class="btn-row">
-                <button class="btn-recall" onclick="panggilSemula()">RECALL 🔄</button>
-                <button class="btn-skip" onclick="skipTiket()">SKIP ⏭️</button>
+    <main class="flex-grow p-6 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6">
+        
+        <div class="md:col-span-2 flex flex-col space-y-6">
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl p-8 shadow-xl flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-5 -mt-5"></div>
+                
+                <div>
+                    <h2 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-2">Sedang Diuruskan</h2>
+                    <div id="current-serving" class="text-7xl md:text-8xl font-black text-white tracking-tight my-4 font-mono">
+                        -
+                    </div>
+                </div>
+
+                <div class="border-t border-gray-700/60 pt-6 mt-6 grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-xs font-semibold text-gray-500 uppercase block">Seterusnya Dalam Barisan</span>
+                        <span id="next-queue" class="text-xl font-bold text-emerald-400 font-mono">-</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-semibold text-gray-500 uppercase block">Status Kaunter</span>
+                        <span id="counter-status" class="text-xl font-bold text-white font-mono text-emerald-400">Aktif</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Panel Kawalan Giliran</h3>
+                <div class="grid grid-cols-1 gap-4">
+                    
+                    <button id="btn-next" onclick="panggilSeterusnya()" class="w-full flex items-center justify-center space-x-2 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-gray-900 font-bold text-lg py-4 px-6 rounded-xl transition duration-200 transform active:scale-95 shadow-lg shadow-emerald-500/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+                        <span>PANGGIL GILIRAN Seterusnya (NEXT)</span>
+                    </button>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="btn-recall" onclick="panggilSemula()" class="flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-gray-900 font-bold py-4 px-6 rounded-xl transition duration-200 transform active:scale-95 shadow-lg shadow-amber-500/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.25 15.6"></path></svg>
+                            <span>RECALL 🔄</span>
+                        </button>
+
+                        <button id="btn-skip" onclick="skipTiket()" class="flex items-center justify-center space-x-2 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white font-semibold py-4 px-6 rounded-xl transition duration-200 transform active:scale-95 border border-gray-600">
+                            <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                            <span>LALUI / SKIP ⏭️</span>
+                        </button>
+                    </div>
+
+                </div>
             </div>
         </div>
 
-        <div class="status-text" id="statusPapar">Menghubungkan ke server...</div>
-    </div>
+        <div class="flex flex-col space-y-6">
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl flex-grow flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Status Barisan Terkini</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="bg-gray-900/60 border border-gray-700/50 rounded-xl p-4 flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-white block">Siri S (Normal)</span>
+                                <span class="text-xs text-gray-500">Kiosk Digital / Butang Fizikal</span>
+                            </div>
+                            <span id="waiting-count" class="text-3xl font-black text-emerald-400 font-mono">0</span>
+                        </div>
 
-    <script src="/socket.io/socket.io.js"></script>
+                        <div class="bg-gray-900/60 border border-gray-700/50 rounded-xl p-4 flex justify-between items-center">
+                            <div>
+                                <span class="font-bold text-amber-400 block">Siri P (Priority)</span>
+                                <span class="text-xs text-gray-500">Ibu & Anak / Warga Emas</span>
+                            </div>
+                            <span id="priority-count" class="text-3xl font-black text-amber-400 font-mono">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-700">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Senarai Tiket Di-Skip</span>
+                    <div id="skipped-list" class="text-sm text-gray-400 font-mono bg-gray-900/40 p-3 rounded-lg min-h-[50px] break-all">
+                        Tiada
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-gray-950 text-center py-4 text-xs text-gray-600 border-t border-gray-900">
+        &copy; 2026 QSmart+ Queue Management System. All rights reserved.
+    </footer>
+
     <script>
         const socket = io();
 
-        // Menerima kemaskini masa nyata daripada server untuk paparan nombor semasa
-        socket.on('updateQueue', (data) => {
-            document.getElementById("noSemasaPapar").innerText = data.currentServing || "---";
+        // 1. Menerima kemas kini data secara automatik dari server via Socket.io
+        socket.on('updateQueue', (queueData) => {
+            console.log("Menerima data barisan terbaharu:", queueData);
             
-            const pCount = data.priority ? data.priority.length : 0;
-            const sCount = data.waiting ? data.waiting.length : 0;
+            // Kemas kini angka paparan nombor semasa
+            document.getElementById('current-serving').innerText = queueData.currentServing || "-";
             
-            document.getElementById("statusPapar").innerText = `Menunggu — Prio: ${pCount} | Normal: ${sCount}`;
+            // Tentukan siapa seterusnya yang berada dalam barisan (Prio diutamakan)
+            let susunanSeterusnya = "-";
+            if (queueData.priority && queueData.priority.length > 0) {
+                susunanSeterusnya = queueData.priority[0];
+            } else if (queueData.waiting && queueData.waiting.length > 0) {
+                susunanSeterusnya = queueData.waiting[0];
+            }
+            document.getElementById('next-queue').innerText = susunanSeterusnya;
+            
+            // Kemas kini baki bilangan array barisan
+            document.getElementById('waiting-count').innerText = queueData.waiting ? queueData.waiting.length : "0";
+            document.getElementById('priority-count').innerText = queueData.priority ? queueData.priority.length : "0";
+
+            // Kemas kini senarai skipped
+            if (queueData.skipped && queueData.skipped.length > 0) {
+                document.getElementById('skipped-list').innerText = queueData.skipped.join(', ');
+            } else {
+                document.getElementById('skipped-list').innerText = "Tiada";
+            }
         });
 
-        // FUNGSI UTAMA: Panggil tiket seterusnya
+        // 2. Fungsi Panggil Tiket Seterusnya via Fetch API
         async function panggilSeterusnya() {
             try {
                 const respon = await fetch('/api/panggil-next');
                 const data = await respon.json();
                 if (data.status === "gagal") {
-                    document.getElementById("statusPapar").innerText = "Tiada tiket menunggu dalam senarai.";
+                    alert("Tiada tiket menunggu dalam senarai.");
                 }
             } catch (ralat) {
-                document.getElementById("statusPapar").innerText = "Ralat berhubung dengan server.";
+                console.error("Ralat panggilSeterusnya:", ralat);
             }
         }
 
-        // FUNGSI KEDUA: Panggil semula nombor yang sama (Recall)
+        // 3. Fungsi Panggil Semula Nombor (Recall) via Fetch API
         async function panggilSemula() {
+            const nomborSemasa = document.getElementById('current-serving').innerText;
+            if (nomborSemasa === "-") {
+                alert("Sila panggil tiket baru dahulu sebelum melakukan RECALL.");
+                return;
+            }
             try {
-                const respon = await fetch('/api/recall');
-                const data = await respon.json();
-                if (data.status === "berjaya") {
-                    document.getElementById("statusPapar").innerText = "Recall berjaya dipancarkan.";
-                }
+                await fetch('/api/recall');
             } catch (ralat) {
-                document.getElementById("statusPapar").innerText = "Ralat semasa melakukan Recall.";
+                console.error("Ralat panggilSemula:", ralat);
             }
         }
 
-        // FUNGSI KETIGA: Lepaskan nombor (Skip)
+        // 4. Fungsi Lepaskan Nombor (Skip) via Fetch API
         async function skipTiket() {
+            const nomborSemasa = document.getElementById('current-serving').innerText;
+            if (nomborSemasa === "-") {
+                alert("Tiada tiket aktif untuk di-skip.");
+                return;
+            }
             try {
-                const respon = await fetch('/api/skip');
-                const data = await respon.json();
-                if (data.status === "berjaya") {
-                    document.getElementById("statusPapar").innerText = "Tiket berjaya dilepaskan (Skipped).";
-                }
+                await fetch('/api/skip');
             } catch (ralat) {
-                document.getElementById("statusPapar").innerText = "Ralat semasa melakukan Skip.";
+                console.error("Ralat skipTiket:", ralat);
             }
         }
     </script>
