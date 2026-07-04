@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Skrin Panggilan Staf - Klinik Q-Smart</title>
+    <title>Skrin Panggilan Staf</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -12,197 +12,134 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
         }
         .container {
             background-color: #162447;
-            padding: 35px;
+            padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             text-align: center;
-            width: 100%;
-            max-width: 550px;
+            width: 90%;
+            max-width: 500px;
         }
-        h1 { color: #e43f5a; margin: 0 0 5px 0; font-size: 2rem; }
-        .sub-title { color: #cbd5e1; margin-bottom: 25px; font-size: 1rem; }
+        h1 { color: #e43f5a; margin-bottom: 10px; }
+        p { color: #cbd5e1; font-size: 1.1rem; }
         
-        /* PANEL STATISTIK / BILANGAN MENUNGGU */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 12px;
-            margin-bottom: 25px;
-        }
-        .stat-card {
-            background-color: #1f4068;
-            padding: 15px 10px;
-            border-radius: 12px;
-            border-bottom: 4px solid #00fff0;
-        }
-        .stat-card.prio { border-bottom-color: #e43f5a; }
-        .stat-card.std { border-bottom-color: #f77f00; }
-        
-        .stat-val { font-size: 1.8rem; font-weight: bold; margin-top: 5px; color: #ffffff; }
-        .stat-lbl { font-size: 0.8rem; color: #a8dadc; font-weight: 600; text-transform: uppercase; }
-
-        /* PAPARAN UTAMA NOMBOR GILIRAN */
         .display-box {
             background-color: #1f4068;
-            padding: 25px;
+            padding: 30px;
             border-radius: 15px;
-            margin-bottom: 25px;
+            margin: 25px 0;
             border: 2px solid #e43f5a;
         }
-        .label { font-size: 1.1rem; color: #00fff0; letter-spacing: 1px; font-weight: bold; }
-        .number { font-size: 4.5rem; font-weight: bold; margin: 10px 0; color: #ffffff; letter-spacing: 2px; }
+        .label { font-size: 1.2rem; color: #00fff0; letter-spacing: 1px; }
+        .number { font-size: 4rem; font-weight: bold; margin: 10px 0; color: #ffffff; }
         
-        /* KUMPULAN BUTANG KAWALAN */
         .btn-group {
             display: flex;
+            gap: 15px;
             flex-direction: column;
-            gap: 12px;
         }
         .btn-row {
             display: flex;
-            gap: 12px;
+            gap: 15px;
+            width: 100%;
         }
         button {
-            padding: 15px 20px;
-            font-size: 1.1rem;
+            padding: 15px 25px;
+            font-size: 1.2rem;
             font-weight: bold;
             cursor: pointer;
             border: none;
             border-radius: 10px;
-            transition: transform 0.1s, background-color 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            transition: all 0.2s;
+            width: 100%;
         }
-        button:active { transform: scale(0.98); }
-        
-        .btn-call { background-color: #00b4d8; color: white; width: 100%; font-size: 1.3rem; padding: 18px; }
-        .btn-call:hover { background-color: #0096c7; }
-        
+        .btn-next { background-color: #00b4d8; color: white; }
+        .btn-next:hover { background-color: #0096c7; }
         .btn-recall { background-color: #f77f00; color: white; flex: 1; }
-        .btn-recall:hover { background-color: #e07200; }
-        
+        .btn-recall:hover { background-color: #fcbf49; }
         .btn-skip { background-color: #e43f5a; color: white; flex: 1; }
         .btn-skip:hover { background-color: #c72c44; }
         
-        .status-text { margin-top: 20px; font-size: 0.9rem; color: #a8dadc; font-style: italic; }
+        .status-text { margin-top: 15px; font-size: 0.9rem; color: #a8dadc; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>KAUNTER UTAMA STAF</h1>
-        <div class="sub-title">Sistem Pengurusan Giliran Klinik Q-Smart</div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-lbl">Waiting</div>
-                <div class="stat-val" id="totalWaiting">0</div>
-            </div>
-            <div class="stat-card prio">
-                <div class="stat-lbl">Prio Queue</div>
-                <div class="stat-val" id="prioWaiting">0</div>
-            </div>
-            <div class="stat-card std">
-                <div class="stat-lbl">Std Queue</div>
-                <div class="stat-val" id="stdWaiting">0</div>
-            </div>
-        </div>
+        <h1>KAUNTER STAF</h1>
+        <p>Sistem Pengurusan Giliran Klinik</p>
 
         <div class="display-box">
-            <div class="label">NOMBOR SEDANG DIPANGGIL</div>
+            <div class="label" id="namaKaunterPapar">KAUNTER UTAMA BERPUSAT</div>
             <div class="number" id="noSemasaPapar">---</div>
         </div>
 
         <div class="btn-group">
-            <button class="btn-call" onclick="panggilSeterusnya()">CALL NEXT 📢</button>
+            <button class="btn-next" onclick="panggilSeterusnya()">CALL NEXT 📢</button>
             <div class="btn-row">
                 <button class="btn-recall" onclick="panggilSemula()">RECALL 🔄</button>
                 <button class="btn-skip" onclick="skipTiket()">SKIP ⏭️</button>
             </div>
         </div>
 
-        <div class="status-text" id="statusPapar">Sedia digunakan...</div>
+        <div class="status-text" id="statusPapar">Menghubungkan ke server...</div>
     </div>
 
+    <script src="/socket.io/socket.io.js"></script>
     <script>
-        let noTiketSemasaLokal = "---";
+        const socket = io();
 
-        // Fungsi auto-update statistik kaunter dari server setiap 2 saat
-        async function dapatkanStatistik() {
-            try {
-                const respon = await fetch('/api/statistik');
-                const data = await respon.json();
-                if(data) {
-                    document.getElementById("totalWaiting").innerText = data.total || 0;
-                    document.getElementById("prioWaiting").innerText = data.prio || 0;
-                    document.getElementById("stdWaiting").innerText = data.std || 0;
-                }
-            } catch (err) {
-                console.error("Gagal kemaskini statistik:", err);
-            }
-        }
+        // Menerima kemaskini masa nyata daripada server untuk paparan nombor semasa
+        socket.on('updateQueue', (data) => {
+            document.getElementById("noSemasaPapar").innerText = data.currentServing || "---";
+            
+            const pCount = data.priority ? data.priority.length : 0;
+            const sCount = data.waiting ? data.waiting.length : 0;
+            
+            document.getElementById("statusPapar").innerText = `Menunggu — Prio: ${pCount} | Normal: ${sCount}`;
+        });
 
-        // Jalankan poll statistik setiap 2 saat secara automatik
-        setInterval(dapatkanStatistik, 2000);
-        dapatkanStatistik();
-
-        // 1. FUNGSI: CALL NEXT
+        // FUNGSI UTAMA: Panggil tiket seterusnya
         async function panggilSeterusnya() {
-            document.getElementById("statusPapar").innerText = "Memproses panggilan tiket...";
             try {
                 const respon = await fetch('/api/panggil-next');
                 const data = await respon.json();
-
-                if (data.status === "berjaya" && data.tiket) {
-                    noTiketSemasaLokal = data.tiket;
-                    document.getElementById("noSemasaPapar").innerText = noTiketSemasaLokal;
-                    document.getElementById("statusPapar").innerText = `Berjaya memanggil tiket ${noTiketSemasaLokal}`;
-                    dapatkanStatistik();
-                } else {
-                    document.getElementById("statusPapar").innerText = "Tiada tiket menunggu dalam senarai giliran.";
+                if (data.status === "gagal") {
+                    document.getElementById("statusPapar").innerText = "Tiada tiket menunggu dalam senarai.";
                 }
             } catch (ralat) {
-                document.getElementById("statusPapar").innerText = "Ralat: Gagal berhubung dengan Cloud Server.";
+                document.getElementById("statusPapar").innerText = "Ralat berhubung dengan server.";
             }
         }
 
-        // 2. FUNGSI: RECALL
+        // FUNGSI KEDUA: Panggil semula nombor yang sama (Recall)
         async function panggilSemula() {
-            if (noTiketSemasaLokal === "---") {
-                document.getElementById("statusPapar").innerText = "Sila panggil tiket baru dahulu sebelum RECALL.";
-                return;
-            }
-            document.getElementById("statusPapar").innerText = `Memanggil semula tiket ${noTiketSemasaLokal}...`;
             try {
-                await fetch('/api/tiket', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tiket: noTiketSemasaLokal })
-                });
-                document.getElementById("statusPapar").innerText = `Recall berjaya untuk ${noTiketSemasaLokal}`;
+                const respon = await fetch('/api/recall');
+                const data = await respon.json();
+                if (data.status === "berjaya") {
+                    document.getElementById("statusPapar").innerText = "Recall berjaya dipancarkan.";
+                }
             } catch (ralat) {
                 document.getElementById("statusPapar").innerText = "Ralat semasa melakukan Recall.";
             }
         }
 
-        // 3. FUNGSI: SKIP
+        // FUNGSI KETIGA: Lepaskan nombor (Skip)
         async function skipTiket() {
-            if (noTiketSemasaLokal === "---") {
-                document.getElementById("statusPapar").innerText = "Tiada tiket aktif untuk di-skip.";
-                return;
+            try {
+                const respon = await fetch('/api/skip');
+                const data = await respon.json();
+                if (data.status === "berjaya") {
+                    document.getElementById("statusPapar").innerText = "Tiket berjaya dilepaskan (Skipped).";
+                }
+            } catch (ralat) {
+                document.getElementById("statusPapar").innerText = "Ralat semasa melakukan Skip.";
             }
-            document.getElementById("statusPapar").innerText = `Tiket ${noTiketSemasaLokal} telah di-skip.`;
-            noTiketSemasaLokal = "---";
-            document.getElementById("noSemasaPapar").innerText = "---";
         }
     </script>
 </body>
