@@ -11,7 +11,7 @@ app.use(express.static(path.join(__dirname)));
 
 // --- TEMPAT SIMPANAN DATA MASA NYATA ---
 let currentServing = "-";
-let waitingList = [];  // Kategori Normal (S)
+let waitingList = [];  // Kategori Normal (A)
 let priorityList = []; // Kategori Priority (P)
 let skippedList = [];  
 
@@ -65,7 +65,7 @@ io.on('connection', (socket) => {
             nextPriorityCount++;
             priorityList.push(newTicket);
         } else {
-            newTicket = "S" + String(nextNormalCount).padStart(3, '0');
+            newTicket = "A" + String(nextNormalCount).padStart(3, '0');
             nextNormalCount++;
             waitingList.push(newTicket);
         }
