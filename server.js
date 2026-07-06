@@ -55,16 +55,15 @@ io.on('connection', (socket) => {
 app.get('/api/panggil-next', (req, res) => {
     
     // Syarat 1: Jika ada Priority DAN belum cukup had panggil 2 kali berturut-turut, UTAMAKAN Priority
-    // (Atau jika ada Priority tetapi tiada langsung Normal dalam barisan)
     if (priorityList.length > 0 && (priorityCalledCount < 2 || waitingList.length === 0)) {
         currentServing = priorityList.shift();
-        priorityCalledCount++; // Tambah rekod panggilan berturut-turut
+        priorityCalledCount++; 
         console.log(`[STAF]: Panggil Priority ${currentServing} (Had: ${priorityCalledCount}/2)`);
     } 
     // Syarat 2: Jika sudah panggil 2 Priority berturut-turut, atau tiada Priority, WAJIB panggil Normal
     else if (waitingList.length > 0) {
         currentServing = waitingList.shift();
-        priorityCalledCount = 0; // Set semula pembilang kepada 0 selepas giliran Normal dipanggil
+        priorityCalledCount = 0; 
         console.log(`[STAF]: Panggil Normal ${currentServing} (Had Priority di-reset)`);
     } 
     // Syarat 3: Jika tiada langsung sesiapa dalam kedua-dua barisan
@@ -85,6 +84,7 @@ app.get('/api/skip', (req, res) => {
     if (currentServing !== "-") {
         if (!skippedList.includes(currentServing)) skippedList.push(currentServing);
         currentServing = "-";
+        priorityCalledCount = 0; // Mengelakkan pepijat limpahan logik keutamaan nisbah selepas skip
         pancarKemaskiniQueue();
         res.json({ status: "berjaya" });
     } else {
