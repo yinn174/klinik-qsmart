@@ -194,7 +194,8 @@ socket.on('triggerRecallAudio', (tiket) => {
 });
 
 function checkQueue() {
-    const inputVal = document.getElementById("queueInput").value.trim().toUpperCase();
+    const inputElement = document.getElementById("queueInput");
+    const inputVal = inputElement.value.trim().toUpperCase();
     
     if (inputVal === "") {
         alert("Please enter a queue number.");
@@ -208,6 +209,7 @@ function checkQueue() {
     }
     
     refreshStatus(inputVal);
+    inputElement.value = ""; // Ditambah untuk membersihkan kotak teks selepas semakan dibuat
 }
 
 function refreshStatus(inputVal) {
@@ -217,7 +219,7 @@ function refreshStatus(inputVal) {
     let estimatedTime = 0;
     let progressPercent = 0;
 
-    // Semak kedudukan nombor di dalam struktur data Render
+    // Semak kedudukan nombor di dalam struktur data Render dengan logik nisbah adil yang betul
     if (globalQueueData.currentServing === inputVal) {
         status = "Serving (Sila Masuk)";
         ahead = 0;
@@ -226,15 +228,20 @@ function refreshStatus(inputVal) {
     }
     else if (globalQueueData.waiting.includes(inputVal)) {
         status = "Waiting";
-        ahead = globalQueueData.waiting.indexOf(inputVal);
+        let posisiSiri = globalQueueData.waiting.indexOf(inputVal);
+        
+        // Membetulkan logik ahead: Orang dalam barisan Normal perlu menunggu giliran priority juga
+        ahead = posisiSiri + globalQueueData.priority.length;
         estimatedTime = (ahead + 1) * 3;
-        progressPercent = Math.max(10, 90 - (ahead * 10));
+        progressPercent = Math.max(10, 90 - (posisiSiri * 10));
     }
     else if (globalQueueData.priority.includes(inputVal)) {
         status = "Waiting";
-        ahead = globalQueueData.priority.indexOf(inputVal);
+        let posisiPrio = globalQueueData.priority.indexOf(inputVal);
+        
+        ahead = posisiPrio;
         estimatedTime = (ahead + 1) * 2;
-        progressPercent = Math.max(10, 90 - (ahead * 10));
+        progressPercent = Math.max(10, 90 - (posisiPrio * 10));
     }
     else if (globalQueueData.skipped.includes(inputVal)) {
         status = "Skipped (Sila ke Kaunter)";
