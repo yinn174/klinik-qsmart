@@ -41,12 +41,12 @@ app.post('/api/tiket', (req, res) => {
         // Mengesan jenis request dari Pico dan menjana nombor siri bersambung secara dinamik
         if (tUpper.startsWith('P')) {
             priorityCounter++;
-            // Menukar angka (cth: 5) menjadi format string 3 digit (cth: "P005")
+            // DIUBAH: Menukar angka (cth: 5) menjadi format string 3 digit (cth: "P005")
             nomborFormatBaru = `P${String(priorityCounter).padStart(3, '0')}`;
             priorityList.push(nomborFormatBaru);
         } else {
             normalCounter++;
-            // Menukar angka (cth: 12) menjadi format string 3 digit (cth: "S002")
+            // DIUBAH: Menukar angka (cth: 12) menjadi format string 3 digit (cth: "S012")
             nomborFormatBaru = `S${String(normalCounter).padStart(3, '0')}`;
             waitingList.push(nomborFormatBaru);
         }
