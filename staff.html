@@ -8,7 +8,7 @@
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 font-sans min-h-screen flex flex-col justify-between">
-
+ 
     <nav class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex justify-between items-center shadow-lg">
         <div class="flex items-center space-x-3">
             <span class="text-2xl font-black tracking-wider text-emerald-400">QSmart<span class="text-white">+</span></span>
@@ -19,7 +19,7 @@
             <span>Sistem Bersepadu Berpusat (Digital & Pico)</span>
         </div>
     </nav>
-
+ 
     <main class="flex-grow p-6 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-3 gap-6">
         
         <div class="md:col-span-2 flex flex-col space-y-6">
@@ -32,7 +32,7 @@
                         -
                     </div>
                 </div>
-
+ 
                 <div class="border-t border-gray-700/60 pt-6 mt-6 grid grid-cols-2 gap-4">
                     <div>
                         <span class="text-xs font-semibold text-gray-500 uppercase block">Seterusnya Dalam Barisan</span>
@@ -44,7 +44,7 @@
                     </div>
                 </div>
             </div>
-
+ 
             <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
                 <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Panel Kawalan Giliran</h3>
                 <div class="grid grid-cols-1 gap-4">
@@ -53,23 +53,23 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
                         <span>PANGGIL GILIRAN Seterusnya (NEXT)</span>
                     </button>
-
+ 
                     <div class="grid grid-cols-2 gap-4">
                         <button id="btn-recall" onclick="panggilSemula()" class="flex items-center justify-center space-x-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-gray-900 font-bold py-4 px-6 rounded-xl transition duration-200 transform active:scale-95 shadow-lg shadow-amber-500/10">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.25 15.6"></path></svg>
-                            <span>RECALL 🔄</span>
+                            <span>RECALL </span>
                         </button>
-
+ 
                         <button id="btn-skip" onclick="skipTiket()" class="flex items-center justify-center space-x-2 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 text-white font-semibold py-4 px-6 rounded-xl transition duration-200 transform active:scale-95 border border-gray-600">
                             <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
-                            <span>LALUI / SKIP ⏭️</span>
+                            <span> SKIP </span>
                         </button>
                     </div>
-
+ 
                 </div>
             </div>
         </div>
-
+ 
         <div class="flex flex-col space-y-6">
             <div class="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl flex-grow flex flex-col justify-between">
                 <div>
@@ -83,7 +83,7 @@
                             </div>
                             <span id="waiting-count" class="text-3xl font-black text-emerald-400 font-mono">0</span>
                         </div>
-
+ 
                         <div class="bg-gray-900/60 border border-gray-700/50 rounded-xl p-4 flex justify-between items-center">
                             <div>
                                 <span class="font-bold text-amber-400 block">Siri P (Priority)</span>
@@ -93,7 +93,7 @@
                         </div>
                     </div>
                 </div>
-
+ 
                 <div class="mt-6 pt-6 border-t border-gray-700">
                     <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block mb-2">Senarai Tiket Di-Skip</span>
                     <div id="skipped-list" class="text-sm text-gray-400 font-mono bg-gray-900/40 p-3 rounded-lg min-h-[50px] break-all">
@@ -102,27 +102,26 @@
                 </div>
             </div>
         </div>
-
+ 
     </main>
-
+ 
     <footer class="bg-gray-950 text-center py-4 text-xs text-gray-600 border-t border-gray-900">
         &copy; 2026 QSmart+ Queue Management System. All rights reserved.
     </footer>
-
+ 
     <script>
-        const socket = io();
-        
-        // Pembolehubah tempatan untuk menjejaki ramalan nisbah adil 2:1 pada sistem paparan staf
-        let localPriorityCalled = 0;
+        const socket = io();        
 
-        // 1. Menerima kemas kini data secara automatik dari server via Socket.io
+        let localPriorityCalled = 0;
+ 
+
         socket.on('updateQueue', (queueData) => {
             console.log("Menerima data barisan terbaharu:", queueData);
             
-            // Kemas kini angka paparan nombor semasa
-            document.getElementById('current-serving').innerText = queueData.currentServing || "-";
-            
-            // Jika kaunter dikosongkan (disebabkan skip), selaraskan semula anggaran penjejak tempatan
+            // Update current queue number
+            document.getElementById('current-serving').innerText = queueData.currentServing || "-";            
+
+
             if (queueData.currentServing === "-") {
                 localPriorityCalled = 0;
             } else if (queueData.currentServing.startsWith('P')) {
@@ -130,8 +129,9 @@
             } else if (queueData.currentServing.startsWith('S')) {
                 localPriorityCalled = 0;
             }
+  
             
-            // Mengira ramalan sebenar "Seterusnya Dalam Barisan" sepadan dengan logik nisbah adil pelayan Render
+
             let susunanSeterusnya = "-";
             if (queueData.priority && queueData.priority.length > 0) {
                 if (localPriorityCalled < 2 || (queueData.waiting && queueData.waiting.length === 0)) {
@@ -144,19 +144,18 @@
             }
             document.getElementById('next-queue').innerText = susunanSeterusnya;
             
-            // Kemas kini baki bilangan array barisan
+     
             document.getElementById('waiting-count').innerText = queueData.waiting ? queueData.waiting.length : "0";
             document.getElementById('priority-count').innerText = queueData.priority ? queueData.priority.length : "0";
-
-            // Kemas kini senarai skipped
+ 
+            // update skipped list
             if (queueData.skipped && queueData.skipped.length > 0) {
                 document.getElementById('skipped-list').innerText = queueData.skipped.join(', ');
             } else {
                 document.getElementById('skipped-list').innerText = "Tiada";
             }
         });
-
-        // 2. Fungsi Panggil Tiket Seterusnya via Fetch API
+ 
         async function panggilSeterusnya() {
             try {
                 const respon = await fetch('/api/panggil-next');
@@ -169,7 +168,6 @@
             }
         }
 
-        // 3. Fungsi Panggil Semula Nombor (Recall) via Fetch API
         async function panggilSemula() {
             const nomborSemasa = document.getElementById('current-serving').innerText;
             if (nomborSemasa === "-") {
@@ -183,7 +181,6 @@
             }
         }
 
-        // 4. Fungsi Lepaskan Nombor (Skip) via Fetch API
         async function skipTiket() {
             const nomborSemasa = document.getElementById('current-serving').innerText;
             if (nomborSemasa === "-") {
@@ -192,7 +189,7 @@
             }
             try {
                 await fetch('/api/skip');
-                localPriorityCalled = 0; // Menetapkan semula penjejak tempatan selepas fungsi skip berjaya diproses
+                localPriorityCalled = 0; 
             } catch (ralat) {
                 console.error("Ralat skipTiket:", ralat);
             }
