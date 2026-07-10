@@ -31,22 +31,47 @@ function pancarKemaskiniQueue() {
     });
 }
 
-// 1. INPUT HARDWARE: Terima isyarat daripada butang fizikal Pico
+// ======================================================================
+// 1. INPUT BACKUP (SIMULASI): Boleh ditaip terus di browser untuk tambah tiket
+// ======================================================================
+// Contoh kegunaan di browser esok: 
+// https://klinik-gp6.onrender.com/api/tambah?jenis=S  (Untuk tiket Normal)
+// https://klinik-gp6.onrender.com/api/tambah?jenis=P  (Untuk tiket Priority)
+app.get('/api/tambah', (req, res) => {
+    const jenis = req.query.jenis ? req.query.jenis.toUpperCase() : 'S';
+    let nomborFormatBaru = "";
+
+    if (jenis === 'P') {
+        priorityCounter++;
+        nomborFormatBaru = `P${String(priorityCounter).padStart(3, '0')}`;
+        priorityList.push(nomborFormatBaru);
+    } else {
+        normalCounter++;
+        nomborFormatBaru = `S${String(normalCounter).padStart(3, '0')}`;
+        waitingList.push(nomborFormatBaru);
+    }
+
+    console.log(`[SIMULASI BROWSER]: Tiket ${nomborFormatBaru} berjaya ditambah.`);
+    pancarKemaskiniQueue();
+    res.send(`<h1>Berjaya! Tiket ${nomborFormatBaru} telah dimasukkan ke dalam barisan Render.</h1>`);
+});
+
+
+// ======================================================================
+// 2. INPUT HARDWARE: Terima isyarat daripada butang fizikal Pico (POST)
+// ======================================================================
 app.post('/api/tiket', (req, res) => {
     const { tiket } = req.body;
     if (tiket) {
         const tUpper = tiket.trim().toUpperCase();
         let nomborFormatBaru = "";
 
-        // Mengesan jenis request dari Pico dan menjana nombor siri bersambung secara dinamik
         if (tUpper.startsWith('P')) {
             priorityCounter++;
-            // Menukar angka (cth: 1) menjadi format string 3 digit (cth: "P001")
             nomborFormatBaru = `P${String(priorityCounter).padStart(3, '0')}`;
             priorityList.push(nomborFormatBaru);
         } else {
             normalCounter++;
-            // Menukar angka (cth: 1) menjadi format string 3 digit (cth: "S001")
             nomborFormatBaru = `S${String(normalCounter).padStart(3, '0')}`;
             waitingList.push(nomborFormatBaru);
         }
