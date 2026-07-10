@@ -15,6 +15,10 @@ let waitingList = [];  // Kategori Normal (S)
 let priorityList = []; // Kategori Priority (P)
 let skippedList = [];  
 
+// --- PEMBOLEHUBAH PEMBILANG NOMBOR BERSAMBUNG ---
+let normalCounter = 0;   // Menjaga turutan bersambung Siri S
+let priorityCounter = 0; // Menjaga turutan bersambung Siri P
+
 // Pembolehubah untuk mengawal had keutamaan adil (Fairness Control)
 let priorityCalledCount = 0; 
 
@@ -27,19 +31,29 @@ function pancarKemaskiniQueue() {
     });
 }
 
-// 1. INPUT HARDWARE: Terima data daripada butang fizikal Pico
+// 1. INPUT HARDWARE: Terima isyarat daripada butang fizikal Pico
 app.post('/api/tiket', (req, res) => {
     const { tiket } = req.body;
     if (tiket) {
         const tUpper = tiket.trim().toUpperCase();
+        let nomborFormatBaru = "";
+
+        // Mengesan jenis request dari Pico dan menjana nombor siri bersambung secara dinamik
         if (tUpper.startsWith('P')) {
-            priorityList.push(tUpper);
+            priorityCounter++;
+            // Menukar angka (cth: 5) menjadi format string 4 digit (cth: "P0005")
+            nomborFormatBaru = `P${String(priorityCounter).padStart(4, '0')}`;
+            priorityList.push(nomborFormatBaru);
         } else {
-            waitingList.push(tUpper);
+            normalCounter++;
+            // Menukar angka (cth: 12) menjadi format string 4 digit (cth: "S0012")
+            nomborFormatBaru = `S${String(normalCounter).padStart(4, '0')}`;
+            waitingList.push(nomborFormatBaru);
         }
-        console.log(`[PICO]: Tiket ${tUpper} dimasukkan.`);
+
+        console.log(`[SERVER]: Tiket ${nomborFormatBaru} berjaya dijana secara bersambung.`);
         pancarKemaskiniQueue();
-        res.status(200).json({ status: "berjaya" });
+        res.status(200).json({ status: "berjaya", tiket: nomborFormatBaru });
     } else {
         res.status(400).json({ status: "gagal" });
     }
@@ -55,16 +69,15 @@ io.on('connection', (socket) => {
 app.get('/api/panggil-next', (req, res) => {
     
     // Syarat 1: Jika ada Priority DAN belum cukup had panggil 2 kali berturut-turut, UTAMAKAN Priority
-    // (Atau jika ada Priority tetapi tiada langsung Normal dalam barisan)
     if (priorityList.length > 0 && (priorityCalledCount < 2 || waitingList.length === 0)) {
         currentServing = priorityList.shift();
-        priorityCalledCount++; // Tambah rekod panggilan berturut-turut
+        priorityCalledCount++; 
         console.log(`[STAF]: Panggil Priority ${currentServing} (Had: ${priorityCalledCount}/2)`);
     } 
     // Syarat 2: Jika sudah panggil 2 Priority berturut-turut, atau tiada Priority, WAJIB panggil Normal
     else if (waitingList.length > 0) {
         currentServing = waitingList.shift();
-        priorityCalledCount = 0; // Set semula pembilang kepada 0 selepas giliran Normal dipanggil
+        priorityCalledCount = 0; 
         console.log(`[STAF]: Panggil Normal ${currentServing} (Had Priority di-reset)`);
     } 
     // Syarat 3: Jika tiada langsung sesiapa dalam kedua-dua barisan
@@ -85,6 +98,7 @@ app.get('/api/skip', (req, res) => {
     if (currentServing !== "-") {
         if (!skippedList.includes(currentServing)) skippedList.push(currentServing);
         currentServing = "-";
+        priorityCalledCount = 0; // Mengelakkan pepijat limpahan logik keutamaan nisbah selepas skip
         pancarKemaskiniQueue();
         res.json({ status: "berjaya" });
     } else {
